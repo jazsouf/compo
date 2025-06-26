@@ -1,0 +1,251 @@
+---
+// compo/src/components/SelectExpansion.astro
+---
+
+<style>
+  select-expansion {
+    display: block;
+    position: relative;
+    width: 100%;
+  }
+
+  .select-wrapper {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+  }
+
+  .select-button {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .select-button:hover {
+    border-color: #999;
+  }
+
+  .select-button:focus {
+    outline: 2px solid #007bff;
+    outline-offset: 2px;
+  }
+
+  .dropdown-arrow {
+    margin-left: 8px;
+    transition: transform 0.2s;
+  }
+
+  .select-button[aria-expanded="true"] .dropdown-arrow {
+    transform: rotate(180deg);
+  }
+
+  .options-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ccc;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+  }
+
+  .options-list.open {
+    display: block;
+  }
+
+  .option {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+  }
+
+  .option:last-child {
+    border-bottom: none;
+  }
+
+  .option:hover {
+    background-color: #f5f5f5;
+  }
+
+  .option.selected {
+    background-color: #007bff;
+    color: white;
+  }
+
+  .option-label {
+    font-weight: 500;
+  }
+</style>
+
+<select-expansion>
+  <form>
+    <div class="select-wrapper">
+      <button
+        type="button"
+        class="select-button"
+        aria-expanded="false"
+        aria-haspopup="listbox"
+        role="combobox"
+      >
+        <span class="selected-content">Select a name</span>
+        <span class="dropdown-arrow">▼</span>
+      </button>
+
+      <div class="options-list" role="listbox">
+        <div class="option" data-value="dakota" role="option">
+          <div class="option-label">Dakota</div>
+        </div>
+        <div class="option" data-value="ana" role="option">
+          <div class="option-label">Ana</div>
+        </div>
+        <div class="option" data-value="renate" role="option">
+          <div class="option-label">Renate</div>
+        </div>
+        <div class="option" data-value="anne" role="option">
+          <div class="option-label">Anne</div>
+        </div>
+      </div>
+
+      <input type="hidden" name="name-select" id="name-select" value="" />
+    </div>
+  </form>
+</select-expansion>
+
+<script>
+  class SelectExpansion extends HTMLElement {
+    constructor() {
+      super();
+      this.selectedValue = "";
+      this.isOpen = false;
+    }
+
+    connectedCallback() {
+      this.initializeSelect();
+    }
+
+    disconnectedCallback() {
+      this.cleanup();
+    }
+
+    initializeSelect() {
+      const button = this.querySelector(".select-button");
+      const optionsList = this.querySelector(".options-list");
+      const options = this.querySelectorAll(".option");
+
+      if (button && optionsList && options) {
+        // Add event listeners
+        button.addEventListener("click", (e) => this.toggleDropdown(e));
+
+        options.forEach((option) => {
+          option.addEventListener("click", (e) => this.selectOption(e));
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener("click", (e) => this.handleOutsideClick(e));
+
+        // Handle keyboard navigation
+        button.addEventListener("keydown", (e) => this.handleKeydown(e));
+      }
+    }
+
+    toggleDropdown(event) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const button = this.querySelector(".select-button");
+      const optionsList = this.querySelector(".options-list");
+
+      this.isOpen = !this.isOpen;
+
+      if (this.isOpen) {
+        optionsList.classList.add("open");
+        button.setAttribute("aria-expanded", "true");
+      } else {
+        optionsList.classList.remove("open");
+        button.setAttribute("aria-expanded", "false");
+      }
+    }
+
+    selectOption(event) {
+      const option = event.currentTarget;
+      const value = option.dataset.value;
+      const label = option.querySelector(".option-label").textContent;
+
+      this.selectedValue = value;
+      this.updateSelectedContent(label);
+      this.updateHiddenInput(value);
+      this.closeDropdown();
+
+      // Update selected state
+      this.querySelectorAll(".option").forEach((opt) => opt.classList.remove("selected"));
+      option.classList.add("selected");
+    }
+
+    updateSelectedContent(text) {
+      const selectedContent = this.querySelector(".selected-content");
+      if (selectedContent) {
+        selectedContent.textContent = text;
+      }
+    }
+
+    updateHiddenInput(value) {
+      const hiddenInput = this.querySelector('input[type="hidden"]');
+      if (hiddenInput) {
+        hiddenInput.value = value;
+      }
+    }
+
+    closeDropdown() {
+      const button = this.querySelector(".select-button");
+      const optionsList = this.querySelector(".options-list");
+
+      this.isOpen = false;
+      optionsList.classList.remove("open");
+      button.setAttribute("aria-expanded", "false");
+    }
+
+    handleOutsideClick(event) {
+      if (!this.contains(event.target) && this.isOpen) {
+        this.closeDropdown();
+      }
+    }
+
+    handleKeydown(event) {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        this.toggleDropdown(event);
+      } else if (event.key === "Escape" && this.isOpen) {
+        this.closeDropdown();
+      }
+    }
+
+    cleanup() {
+      const button = this.querySelector(".select-button");
+      const options = this.querySelectorAll(".option");
+
+      if (button) {
+        button.removeEventListener("click", this.toggleDropdown);
+        button.removeEventListener("keydown", this.handleKeydown);
+      }
+
+      options.forEach((option) => {
+        option.removeEventListener("click", this.selectOption);
+      });
+
+      document.removeEventListener("click", this.handleOutsideClick);
+    }
+  }
+
+  customElements.define("select-expansion", SelectExpansion);
+</script>
