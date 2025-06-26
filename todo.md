@@ -1,0 +1,3 @@
+- [x] Set up index page
+- [x] Add card for displaying the component
+- [ ] Work on the first component

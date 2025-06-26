@@ -1,0 +1,17 @@
+---
+title: Test component
+description: testing how to display the component and its code
+---
+
+import { Code, Card } from "@astrojs/starlight/components";
+import Test from "../../../components/Test.astro";
+
+export const code = `console.log('This could come from a file or CMS!');`;
+export const title = "Test.astro";
+export const highlights = ["file", "CMS"];
+
+<Card>
+  <Test />
+</Card>
+
+<Code code={code} lang="js" title={title} mark={highlights} />
