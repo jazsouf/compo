@@ -21,86 +21,88 @@
     display: grid;
     place-items: center;
     width: 100%;
+    place-content: center;
   }
 
   .select-button {
-    width: 100%;
+    grid-area: content;
     padding: 8px 12px;
     border: 1px solid #ccc;
-    border-radius: 4px;
-    background: white;
+    background: black;
+    color: white;
     cursor: pointer;
     display: flex;
     justify-content: center;
     align-items: center;
-  }
-
-  .select-button:hover {
-    border-color: #999;
+    width: max-content;
+    min-width: 100%;
   }
 
   .select-button:focus {
-    outline: 2px solid #007bff;
+    outline: 2px solid #5f5f5f;
     outline-offset: 2px;
   }
 
-  .select-button.expanded {
-    visibility: hidden;
-    position: absolute;
-    top: 50%;
-    left: 0;
-    right: 0;
-    transform: translateY(-50%);
-    z-index: 1001;
+  .select-button.expanded .selected-content {
+    opacity: 0;
+    transition: opacity 0.2s ease-out 0.2s;
+  }
+
+  .select-button.no-transition {
+    transition: none;
   }
 
   .options-list {
-    position: absolute;
-    top: 50%;
-    left: 0;
-    right: 0;
-    width: 100%;
-    background: white;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    grid-area: content;
+    background: black;
+    color: white;
     max-height: 200px;
     overflow-y: auto;
     z-index: 1000;
-    transform: translateY(-50%) scaleY(0);
+    transform: scale(1, 0);
     transform-origin: center;
-    transition:
-      transform 0.3s ease-out,
-      opacity 0.3s ease-out;
-    opacity: 0;
+    transition: transform 0.3s ease-out;
+    width: max-content;
+    min-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .options-list.no-transition {
+    transition: none;
   }
 
   .options-list.open {
-    transform: translateY(-50%) scaleY(1);
-    opacity: 1;
+    transform: scale(1.25);
   }
 
   .option {
-    padding: 8px 12px;
     cursor: pointer;
-    border-bottom: 1px solid #eee;
     margin: 0;
-  }
-
-  .option:last-child {
-    border-bottom: none;
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    /* scale down the text to account for the list scaling 1÷1.25 = 0.8 */
+    transform: scale(0.8);
+    min-width: 20px;
   }
 
   .option:hover {
-    background-color: #f5f5f5;
+    color: #fdf0f0;
   }
 
   .option.selected {
-    background-color: #007bff;
+    text-decoration: underline;
     color: white;
   }
 
   .option-label {
     font-weight: 500;
+    opacity: 0;
+    transition: opacity 0.15s ease-out 0.35s;
+  }
+
+  .options-list.open .option-label {
+    opacity: 1;
   }
 </style>
 
@@ -203,6 +205,13 @@
       const label = option.querySelector(".option-label")!.textContent;
 
       this.selectedValue = value;
+
+      // Disable transitions for instant resize
+      const button = this.querySelector(".select-button")!;
+      const optionsList = this.querySelector(".options-list")!;
+      button.classList.add("no-transition");
+      optionsList.classList.add("no-transition");
+
       this.updateSelectedContent(label);
       this.updateHiddenInput(value);
       this.closeDropdown();
@@ -210,6 +219,12 @@
       // Update selected state
       this.querySelectorAll(".option").forEach((opt) => opt.classList.remove("selected"));
       option.classList.add("selected");
+
+      // Re-enable transitions after a frame
+      requestAnimationFrame(() => {
+        button.classList.remove("no-transition");
+        optionsList.classList.remove("no-transition");
+      });
     }
 
     private updateSelectedContent(text: string) {
