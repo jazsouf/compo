@@ -4,14 +4,22 @@
 
 <style>
   select-expansion {
-    display: block;
+    display: grid;
+    place-items: center;
     position: relative;
+    width: 100%;
+    min-height: 50vh;
+    margin: auto;
+  }
+
+  form {
     width: 100%;
   }
 
   .select-wrapper {
     position: relative;
-    display: inline-block;
+    display: grid;
+    place-items: center;
     width: 100%;
   }
 
@@ -23,7 +31,7 @@
     background: white;
     cursor: pointer;
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
   }
 
@@ -36,38 +44,46 @@
     outline-offset: 2px;
   }
 
-  .dropdown-arrow {
-    margin-left: 8px;
-    transition: transform 0.2s;
-  }
-
-  .select-button[aria-expanded="true"] .dropdown-arrow {
-    transform: rotate(180deg);
+  .select-button.expanded {
+    visibility: hidden;
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    transform: translateY(-50%);
+    z-index: 1001;
   }
 
   .options-list {
     position: absolute;
-    top: 100%;
+    top: 50%;
     left: 0;
     right: 0;
+    width: 100%;
     background: white;
     border: 1px solid #ccc;
-    border-top: none;
-    border-radius: 0 0 4px 4px;
+    border-radius: 4px;
     max-height: 200px;
     overflow-y: auto;
     z-index: 1000;
-    display: none;
+    transform: translateY(-50%) scaleY(0);
+    transform-origin: center;
+    transition:
+      transform 0.3s ease-out,
+      opacity 0.3s ease-out;
+    opacity: 0;
   }
 
   .options-list.open {
-    display: block;
+    transform: translateY(-50%) scaleY(1);
+    opacity: 1;
   }
 
   .option {
     padding: 8px 12px;
     cursor: pointer;
     border-bottom: 1px solid #eee;
+    margin: 0;
   }
 
   .option:last-child {
@@ -99,7 +115,6 @@
         role="combobox"
       >
         <span class="selected-content">Select a name</span>
-        <span class="dropdown-arrow">▼</span>
       </button>
 
       <div class="options-list" role="listbox">
@@ -123,7 +138,12 @@
 </select-expansion>
 
 <script>
+  import { registerElement } from "../utils";
+
   class SelectExpansion extends HTMLElement {
+    private selectedValue: string = "";
+    private isOpen: boolean = false;
+
     constructor() {
       super();
       this.selectedValue = "";
@@ -138,49 +158,49 @@
       this.cleanup();
     }
 
-    initializeSelect() {
-      const button = this.querySelector(".select-button");
-      const optionsList = this.querySelector(".options-list");
-      const options = this.querySelectorAll(".option");
+    private initializeSelect() {
+      const button = this.querySelector(".select-button")!;
+      const optionsList = this.querySelector(".options-list")!;
+      const options = this.querySelectorAll(".option")!;
 
-      if (button && optionsList && options) {
-        // Add event listeners
-        button.addEventListener("click", (e) => this.toggleDropdown(e));
+      // Add event listeners
+      button.addEventListener("click", (e) => this.toggleDropdown(e));
 
-        options.forEach((option) => {
-          option.addEventListener("click", (e) => this.selectOption(e));
-        });
+      options.forEach((option) => {
+        option.addEventListener("click", (e) => this.selectOption(e));
+      });
 
-        // Close dropdown when clicking outside
-        document.addEventListener("click", (e) => this.handleOutsideClick(e));
+      // Close dropdown when clicking outside
+      document.addEventListener("click", (e) => this.handleOutsideClick(e));
 
-        // Handle keyboard navigation
-        button.addEventListener("keydown", (e) => this.handleKeydown(e));
-      }
+      // Handle keyboard navigation
+      button.addEventListener("keydown", (e) => this.handleKeydown(e));
     }
 
-    toggleDropdown(event) {
+    private toggleDropdown(event: MouseEvent) {
       event.preventDefault();
       event.stopPropagation();
 
-      const button = this.querySelector(".select-button");
-      const optionsList = this.querySelector(".options-list");
+      const button = this.querySelector(".select-button")!;
+      const optionsList = this.querySelector(".options-list")!;
 
       this.isOpen = !this.isOpen;
 
       if (this.isOpen) {
         optionsList.classList.add("open");
+        button.classList.add("expanded");
         button.setAttribute("aria-expanded", "true");
       } else {
         optionsList.classList.remove("open");
+        button.classList.remove("expanded");
         button.setAttribute("aria-expanded", "false");
       }
     }
 
-    selectOption(event) {
-      const option = event.currentTarget;
-      const value = option.dataset.value;
-      const label = option.querySelector(".option-label").textContent;
+    private selectOption(event: MouseEvent) {
+      const option = event.currentTarget as HTMLElement;
+      const value = option.dataset.value!;
+      const label = option.querySelector(".option-label")!.textContent;
 
       this.selectedValue = value;
       this.updateSelectedContent(label);
@@ -192,36 +212,35 @@
       option.classList.add("selected");
     }
 
-    updateSelectedContent(text) {
+    private updateSelectedContent(text: string) {
       const selectedContent = this.querySelector(".selected-content");
       if (selectedContent) {
         selectedContent.textContent = text;
       }
     }
 
-    updateHiddenInput(value) {
-      const hiddenInput = this.querySelector('input[type="hidden"]');
-      if (hiddenInput) {
-        hiddenInput.value = value;
-      }
+    private updateHiddenInput(value: string) {
+      const hiddenInput = this.querySelector('input[type="hidden"]') as HTMLInputElement;
+      hiddenInput.value = value;
     }
 
-    closeDropdown() {
-      const button = this.querySelector(".select-button");
-      const optionsList = this.querySelector(".options-list");
+    private closeDropdown() {
+      const button = this.querySelector(".select-button")!;
+      const optionsList = this.querySelector(".options-list")!;
 
       this.isOpen = false;
       optionsList.classList.remove("open");
+      button.classList.remove("expanded");
       button.setAttribute("aria-expanded", "false");
     }
 
-    handleOutsideClick(event) {
-      if (!this.contains(event.target) && this.isOpen) {
+    private handleOutsideClick(event: Event) {
+      if (!this.contains(event.target as Node) && this.isOpen) {
         this.closeDropdown();
       }
     }
 
-    handleKeydown(event) {
+    private handleKeydown(event: KeyboardEvent) {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
         this.toggleDropdown(event);
@@ -230,14 +249,12 @@
       }
     }
 
-    cleanup() {
-      const button = this.querySelector(".select-button");
-      const options = this.querySelectorAll(".option");
+    private cleanup() {
+      const button = this.querySelector(".select-button")!;
+      const options = this.querySelectorAll(".option")!;
 
-      if (button) {
-        button.removeEventListener("click", this.toggleDropdown);
-        button.removeEventListener("keydown", this.handleKeydown);
-      }
+      button.removeEventListener("click", this.toggleDropdown);
+      button.removeEventListener("keydown", this.handleKeydown);
 
       options.forEach((option) => {
         option.removeEventListener("click", this.selectOption);
@@ -247,5 +264,5 @@
     }
   }
 
-  customElements.define("select-expansion", SelectExpansion);
+  registerElement("select-expansion", SelectExpansion);
 </script>
